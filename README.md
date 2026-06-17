@@ -40,7 +40,7 @@ Black-box UE is especially useful when model internals such as logits, hidden st
 
 
 
-<details>
+<!-- <details>
   <summary>📑 <b>Table of Contents</b></summary>
   <ol>
     <li><a href="#-overview">Overview</a></li>
@@ -61,7 +61,26 @@ Black-box UE is especially useful when model internals such as logits, hidden st
     <li><a href="#-adding-a-new-method">Adding a New Method</a></li>
     <li><a href="#-contributing">Contributing</a></li>
   </ol>
-</details>
+</details> -->
+
+📑 **Table of Contents**
+
+* [Overview](#-overview)
+* [Taxonomy](#-taxonomy)
+* [How to Read the Tables](#-how-to-read-the-tables)
+* [Method Catalog](#-method-catalog)
+
+  * [Verbalization-based](#%EF%B8%8F-verbalization-based)
+  * [Sampling-based](#-sampling-based)
+  * [Explanation-based](#-explanation-based)
+  * [Multi-agent](#-multi-agent)
+  * [Hybrid](#-hybrid)
+* [Framework](#-framework)
+* [Quick Start](#-quick-start)
+* [Evaluation Results](#-evaluation-results)
+* [Adding a New Method](#-adding-a-new-method)
+* [Contributing](#-contributing)
+
 
 ---
 
@@ -84,7 +103,7 @@ We organize black-box UE methods into five categories:
 - **Computation** indicates relative inference cost.
 - **Calibration** indicates whether the method directly produces a confidence score in `[0, 1]` without requiring additional calibration or normalization.
 - **Open-ended** and **Closed-ended** indicate whether the method is applicable to open-ended QA and/or closed-ended QA.
-- **Code** links to publicly available implementations when listed in the survey table.
+- **Code** links to publicly available implementations for each specific method.
 
 ---
 
