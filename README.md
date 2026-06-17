@@ -15,6 +15,10 @@
   <b>A curated hub and unified evaluation framework for black-box uncertainty estimation in large language models.</b>
 </p>
 
+<p align="center">
+  <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
+</p>
+
 <!-- <p align="center">
   <a href="https://awesome.re"><img src="https://awesome.re/badge.svg" alt="Awesome"></a>
   <img src="https://img.shields.io/badge/Taxonomy-5%20Categories-blue" alt="Taxonomy">
@@ -33,9 +37,7 @@
 
 Black-box UE is especially useful when model internals such as logits, hidden states, or gradients are unavailable. Instead, it estimates reliability from externally observable behavior, including verbalized confidence, sampled responses, reasoning traces, multi-agent deliberation, or combinations of these signals.
 
-<p align="center">
-  <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
-</p>
+
 
 
 <details>
