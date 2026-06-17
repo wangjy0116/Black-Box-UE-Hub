@@ -36,7 +36,7 @@ Black-box UE is especially useful when model internals such as logits, hidden st
 <p align="center">
   <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
 </p>
----
+
 
 <details>
   <summary>📑 <b>Table of Contents</b></summary>
