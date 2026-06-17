@@ -259,12 +259,27 @@ python eval.py \
 
 ## 📊 Evaluation Results
 
-We provide aggregate comparisons of representative black-box UE methods on both open-ended and closed-ended QA tasks. The results are evaluated with common uncertainty estimation metrics, including AUROC, ECE, and Brier score.
+We report aggregate evaluation results of representative black-box UE methods on open-ended and closed-ended QA tasks. Bar charts summarize the overall comparison across AUROC, ECE, and Brier score, while the table images provide more detailed numerical results for different method groups.
 
 ### Open-ended QA
 
 <p align="center">
   <img src="fig/open-ended.png" alt="Comparison of UE methods on open-ended QA" width="95%">
+</p>
+
+#### Verbalization-based methods
+<p align="center">
+  <img src="fig/openended_verbalization.png" alt="Open-ended QA results for verbalization-based methods" width="95%">
+</p>
+
+#### Sampling-based methods
+<p align="center">
+  <img src="fig/openended_sampling.png" alt="Open-ended QA results for sampling-based methods" width="95%">
+</p>
+
+#### Other methods
+<p align="center">
+  <img src="fig/openended_other.png" alt="Open-ended QA results for other black-box UE methods" width="95%">
 </p>
 
 ### Closed-ended QA
@@ -273,6 +288,9 @@ We provide aggregate comparisons of representative black-box UE methods on both 
   <img src="fig/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
 </p>
 
+<p align="center">
+  <img src="fig/closedended_all_methods.png" alt="Closed-ended QA results for all methods" width="95%">
+</p>
 ---
 
 ## 🧩 Adding a New Method
