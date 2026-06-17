@@ -9,7 +9,7 @@
 
 <br /> -->
 
-<h1 align="center">🔥 The Hub for Black-Box Uncertainty Estimation in Large Language Models</h1>
+<h1 align="center">🔥 The Hub for Black-Box Uncertainty Estimation in LLMs</h1>
 
 <p align="center">
   <b>A curated hub and unified evaluation framework for black-box uncertainty estimation in large language models.</b>
