@@ -34,7 +34,7 @@
 Black-box UE is especially useful when model internals such as logits, hidden states, or gradients are unavailable. Instead, it estimates reliability from externally observable behavior, including verbalized confidence, sampled responses, reasoning traces, multi-agent deliberation, or combinations of these signals.
 
 <p align="center">
-  <img src="figs/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
+  <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
 </p>
 ---
 
@@ -261,13 +261,13 @@ We provide aggregate comparisons of representative black-box UE methods on both 
 ### Open-ended QA
 
 <p align="center">
-  <img src="figures/open-ended.png" alt="Comparison of UE methods on open-ended QA" width="95%">
+  <img src="fig/open-ended.png" alt="Comparison of UE methods on open-ended QA" width="95%">
 </p>
 
 ### Closed-ended QA
 
 <p align="center">
-  <img src="figures/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
+  <img src="fig/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
 </p>
 
 ---
