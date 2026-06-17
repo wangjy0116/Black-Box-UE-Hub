@@ -57,6 +57,7 @@ Black-box UE is especially useful when model internals such as logits, hidden st
     </li>
     <li><a href="#-framework">Framework</a></li>
     <li><a href="#-quick-start">Quick Start</a></li>
+    <li><a href="#-evaluation-results">Evaluation Results</a></li>
     <li><a href="#-adding-a-new-method">Adding a New Method</a></li>
     <li><a href="#-contributing">Contributing</a></li>
   </ol>
@@ -256,7 +257,7 @@ python eval.py \
 
 ---
 
-## 📊 Experimental Results
+## 📊 Evaluation Results
 
 We provide aggregate comparisons of representative black-box UE methods on both open-ended and closed-ended QA tasks. The results are evaluated with common uncertainty estimation metrics, including AUROC, ECE, and Brier score.
 
