@@ -1,0 +1,14 @@
+datasets==4.4.2
+numpy==2.4.4
+openai==2.32.0
+pandas==3.0.2
+pyyaml==6.0.2
+python-dotenv==1.2.2
+scikit_learn==1.8.0
+scipy==1.17.1
+sentence_transformers==5.2.2
+spacy==3.8.11
+torch==2.6.0
+tqdm==4.67.1
+transformers==4.51.0
+vllm==0.8.1
