@@ -54,7 +54,6 @@ Black-box UE is especially useful when model internals such as logits, hidden st
     <li><a href="#-quick-start">Quick Start</a></li>
     <li><a href="#-adding-a-new-method">Adding a New Method</a></li>
     <li><a href="#-contributing">Contributing</a></li>
-    <li><a href="#-citation">Citation</a></li>
   </ol>
 </details>
 
