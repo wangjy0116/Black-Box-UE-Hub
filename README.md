@@ -9,7 +9,7 @@
 
 <br /> -->
 
-<h1 align="center">🔥 The Hub for Black-Box Uncertainty Estimation in LLMs</h1>
+<h1 align="center"> The Hub for Black-Box Uncertainty Estimation in LLMs</h1>
 
 <p align="center">
   <b>A curated hub and unified evaluation framework for black-box uncertainty estimation in large language models.</b>
@@ -55,7 +55,7 @@ Black-box UE is especially useful when model internals such as logits, hidden st
         <li><a href="#-hybrid">Hybrid</a></li>
       </ul>
     </li>
-    <li><a href="#-framework">Framework</a></li>
+    <li><a href="#-evaluation code and framework">Evaluation Code and Framework</a></li>
     <li><a href="#-quick-start">Quick Start</a></li>
     <li><a href="#-evaluation-results">Evaluation Results</a></li>
     <li><a href="#-adding-a-new-method">Adding a New Method</a></li>
@@ -189,7 +189,7 @@ We organize black-box UE methods into five categories:
 
 ---
 
-## 🧱 Framework
+## 🧱 Evaluation Code and Framework
 
 The code framework is organized around a batch pipeline and a shared method interface. It includes implementations of the major black-box UE methods currently supported in this repository, and new methods can be added progressively under the same interface.
 
