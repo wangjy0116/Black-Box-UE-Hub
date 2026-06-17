@@ -158,7 +158,7 @@ We organize black-box UE methods into five categories:
 | [BSDetector](https://arxiv.org/abs/2308.16175) | ACL 2024 | Medium | ✅ | ✅ | — | — |
 | [UF Calibration (UF)](https://arxiv.org/abs/2404.02655) | EMNLP 2024 | Medium | ✅ | — | ✅ | — |
 | [SteerConf](https://arxiv.org/abs/2503.02863) | NeurIPS 2025 | Medium | ✅ | ✅ | ✅ | [Code](https://github.com/scottjiao/SteerConf) |
-| [DINCo](https://arxiv.org/abs/2509.25532) | ICLR 2026 | Medium | ✅ | ✅ | — | [Code](https://github.com/victorwang37/dinco) |
+| [DiNCo](https://arxiv.org/abs/2509.25532) | ICLR 2026 | Medium | ✅ | ✅ | — | [Code](https://github.com/victorwang37/dinco) |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
