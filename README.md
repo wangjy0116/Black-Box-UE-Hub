@@ -9,7 +9,7 @@
 
 <br /> -->
 
-<h1 align="center">🔥 Black-Box-UE-Hub</h1>
+<h1 align="center">🔥 The Hub for Black-Box Uncertainty Estimation in Large Language Models</h1>
 
 <p align="center">
   <b>A curated hub and unified evaluation framework for black-box uncertainty estimation in large language models.</b>
@@ -33,6 +33,9 @@
 
 Black-box UE is especially useful when model internals such as logits, hidden states, or gradients are unavailable. Instead, it estimates reliability from externally observable behavior, including verbalized confidence, sampled responses, reasoning traces, multi-agent deliberation, or combinations of these signals.
 
+<p align="center">
+  <img src="figs/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
+</p>
 ---
 
 <details>
@@ -129,7 +132,7 @@ We organize black-box UE methods into five categories:
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | [CoT Explanations (COTA)](https://arxiv.org/abs/2308.16175) | AISTATS 2024 | Medium | ✅ | ✅ | ✅ | — |
 | [Think twice before trusting (T3)](https://arxiv.org/abs/2403.09972) | EMNLP Findings 2024 | Medium | ✅ | — | ✅ | — |
-| [Topo-UQ](https://arxiv.org/abs/2502.17026) | COLM 2025 | Medium | — | ✅ | — | [Code](https://github.com/LongchaoDa/LLM-Topology) |
+| [Topo-UQ](https://arxiv.org/abs/2502.17026) | COLM 2025 | Medium | ✅ | ✅ | — | [Code](https://github.com/LongchaoDa/LLM-Topology) |
 | [Introspective UQ (IUQ)](https://arxiv.org/abs/2506.18183) | arXiv 2025 | Low / Medium | ✅ | ✅ | ✅ | — |
 | [CenConf](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
 | [PathConv](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
@@ -158,7 +161,7 @@ We organize black-box UE methods into five categories:
 | [BSDetector](https://arxiv.org/abs/2308.16175) | ACL 2024 | Medium | ✅ | ✅ | — | — |
 | [UF Calibration (UF)](https://arxiv.org/abs/2404.02655) | EMNLP 2024 | Medium | ✅ | — | ✅ | — |
 | [SteerConf](https://arxiv.org/abs/2503.02863) | NeurIPS 2025 | Medium | ✅ | ✅ | ✅ | [Code](https://github.com/scottjiao/SteerConf) |
-| [DiNCo](https://arxiv.org/abs/2509.25532) | ICLR 2026 | Medium | ✅ | ✅ | — | [Code](https://github.com/victorwang37/dinco) |
+| [Distractor-Normalized Coherence (DiNCo)](https://arxiv.org/abs/2509.25532) | ICLR 2026 | Medium | ✅ | ✅ | — | [Code](https://github.com/victorwang37/dinco) |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -248,6 +251,24 @@ python eval.py \
   --datasets triviaqa hotpotqa coqa truthfulqa_mc \
   --models qwen3-4b-instruct qwen3-30b-instruct deepseek-v3.2 gpt-5-mini
 ```
+
+---
+
+## 📊 Experimental Results
+
+We provide aggregate comparisons of representative black-box UE methods on both open-ended and closed-ended QA tasks. The results are evaluated with common uncertainty estimation metrics, including AUROC, ECE, and Brier score.
+
+### Open-ended QA
+
+<p align="center">
+  <img src="figures/open-ended.png" alt="Comparison of UE methods on open-ended QA" width="95%">
+</p>
+
+### Closed-ended QA
+
+<p align="center">
+  <img src="figures/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
+</p>
 
 ---
 
