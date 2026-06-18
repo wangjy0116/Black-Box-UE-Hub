@@ -305,7 +305,7 @@ In open-ended QA, sampling-aggregated verbalization methods and hybrid methods a
 Sampling aggregation generally improves single-pass verbalization by making self-reported confidence more stable across repeated elicitation. VPD is especially competitive because it encourages the model to compare multiple candidate answers and assign confidence over the answer space, while purely linguistic uncertainty expressions are harder to map into reliable numerical scores.
 
 <p align="center">
-  <img src="fig/open-ended-verbalization.png" alt="Open-ended QA results for verbalization-based methods" width="95%">
+  <img src="fig/open-ended-verbalization.png" alt="Open-ended QA results for verbalization-based methods" width="50%">
 </p>
 
 <p align="center">
@@ -327,7 +327,7 @@ Sampling-based methods isolate the quality of uncertainty signals by comparing m
 This group includes explanation-based, multi-agent, and hybrid methods. Hybrid methods such as SteerConf and DiNCo perform well because they combine complementary signals, including cross-sample consistency, candidate comparison, and confidence stability under controlled prompting. Explanation-based and multi-agent methods can provide additional evidence from reasoning chains or deliberation processes, but their effectiveness is more sensitive to the quality of generated reasoning and the design of interaction mechanisms. In open-ended QA, different reasoning chains may vary substantially in their local steps even when they support the same answer, and multi-agent deliberation may sometimes reinforce noisy or majority-biased signals rather than improve uncertainty estimation.
 
 <p align="center">
-  <img src="fig/open-ended-other.png" alt="Open-ended QA results for other black-box UE methods" width="95%">
+  <img src="fig/open-ended-other.png" alt="Open-ended QA results for other black-box UE methods" width="50%">
 </p>
 <p align="center">
   <b>Table: Open-ended QA results for explanation-based, multi-agent, and hybrid methods.</b><br>
