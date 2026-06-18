@@ -316,7 +316,7 @@ Sampling aggregation generally improves single-pass verbalization by making self
 Sampling-based methods isolate the quality of uncertainty signals by comparing multiple generated responses under the same answer-generation setting. NLI-based methods such as SelfCheck, Deg, KLE, and SNNE show strong and stable AUROC, because entailment and contradiction relations are often more aligned with factual correctness than broad embedding similarity.
 
 <p align="center">
-  <img src="fig/open-ended-sampling.png" alt="Open-ended QA results for sampling-based methods" width="95%">
+  <img src="fig/open-ended-sampling.png" alt="Open-ended QA results for sampling-based methods" width="85%">
 </p>
 
 <p align="center">
