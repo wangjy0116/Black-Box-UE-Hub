@@ -343,6 +343,7 @@ In closed-ended QA, the answer space is predefined, so methods that explicitly e
 <p align="center">
   <img src="fig/closed-ended-all.png" alt="Closed-ended QA results for all methods" width="95%">
 </p>
+
 ---
 
 ## 🧩 Adding a New Method
