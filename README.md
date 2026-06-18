@@ -161,7 +161,7 @@ Explanation-based methods estimate uncertainty from the model's reasoning proces
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | [CoT Explanations (COTA)](https://arxiv.org/abs/2308.16175) | AISTATS 2024 | Medium | ✅ | ✅ | ✅ | — |
 | [Think twice before trusting (T3)](https://arxiv.org/abs/2403.09972) | EMNLP Findings 2024 | Medium | ✅ | — | ✅ | — |
-| [Topo-UQ](https://arxiv.org/abs/2502.17026) | COLM 2025 | Medium | ✅ | ✅ | — | [Code](https://github.com/LongchaoDa/LLM-Topology) |
+| [Topo-UQ](https://arxiv.org/abs/2502.17026) | COLM 2025 | Medium | — | ✅ | ✅ | [Code](https://github.com/LongchaoDa/LLM-Topology) |
 | [Introspective UQ (IUQ)](https://arxiv.org/abs/2506.18183) | arXiv 2025 | Low / Medium | ✅ | ✅ | ✅ | — |
 | [CenConf](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
 | [PathConv](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
