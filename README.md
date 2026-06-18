@@ -290,27 +290,51 @@ python eval.py \
 We report aggregate evaluation results of representative black-box UE methods on open-ended and closed-ended QA tasks. Bar charts summarize the overall comparison across AUROC, ECE, and Brier score, while the table images provide more detailed numerical results for different method groups.
 
 ### Open-ended QA
+In open-ended QA, sampling-aggregated verbalization methods and hybrid methods are highly competitive. In particular, SteerConf shows strong overall discriminative performance, while sampling-aggregated VPD provides strong calibration. DiNCo also performs well by combining cross-sample consistency with candidate-level comparison. Among sampling-based methods, NLI-relation-based methods are generally stronger on AUROC than methods relying mainly on continuous embedding similarity, suggesting that fine-grained semantic relations are important for open-ended factual reliability estimation.
 
 <p align="center">
   <img src="fig/open-ended.png" alt="Comparison of UE methods on open-ended QA" width="95%">
 </p>
 
+<p align="center">
+  <b>Figure: Overall comparison on open-ended QA.</b><br>
+</p>
+
 #### Verbalization-based methods
+
+Sampling aggregation generally improves single-pass verbalization by making self-reported confidence more stable across repeated elicitation. VPD is especially competitive because it encourages the model to compare multiple candidate answers and assign confidence over the answer space, while purely linguistic uncertainty expressions are harder to map into reliable numerical scores.
+
 <p align="center">
   <img src="fig/openended_verbalization.png" alt="Open-ended QA results for verbalization-based methods" width="95%">
 </p>
 
+<p align="center">
+  <b>Table: Open-ended QA results for verbalization-based methods.</b><br>
+</p>
+
 #### Sampling-based methods
+Sampling-based methods isolate the quality of uncertainty signals by comparing multiple generated responses under the same answer-generation setting. NLI-based methods such as SelfCheck, Deg, KLE, and SNNE show strong and stable AUROC, because entailment and contradiction relations are often more aligned with factual correctness than broad embedding similarity.
+
 <p align="center">
   <img src="fig/openended_sampling.png" alt="Open-ended QA results for sampling-based methods" width="95%">
 </p>
 
+<p align="center">
+  <b>Table: Open-ended QA results for sampling-based methods.</b><br>
+</p>
+
 #### Other methods
+This group includes explanation-based, multi-agent, and hybrid methods. Hybrid methods such as SteerConf and DiNCo perform well because they combine complementary signals, including cross-sample consistency, candidate comparison, and confidence stability under controlled prompting. Explanation-based and multi-agent methods can provide additional evidence from reasoning chains or deliberation processes, but their effectiveness is more sensitive to the quality of generated reasoning and the design of interaction mechanisms. In open-ended QA, different reasoning chains may vary substantially in their local steps even when they support the same answer, and multi-agent deliberation may sometimes reinforce noisy or majority-biased signals rather than improve uncertainty estimation.
+
 <p align="center">
   <img src="fig/openended_other.png" alt="Open-ended QA results for other black-box UE methods" width="95%">
 </p>
+<p align="center">
+  <b>Table: Open-ended QA results for explanation-based, multi-agent, and hybrid methods.</b><br>
+</p>
 
 ### Closed-ended QA
+In closed-ended QA, the answer space is predefined, so methods that explicitly exploit candidate options show clear advantages. T3 and UF achieve strong discriminative performance by reasoning over candidate explanations or decomposing confidence into question-level uncertainty and answer fidelity. Among more general methods, sampling-aggregated verbalization remains competitive, and VPD shows strong calibration because it directly elicits a normalized confidence distribution over candidate answers.
 
 <p align="center">
   <img src="fig/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
