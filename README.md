@@ -21,7 +21,6 @@
 
 <p align="center">
   <b>Overview of black-box UE for LLMs.</b><br>
-  <em>Black-box UE estimates answer reliability from externally observable signals, such as verbalized confidence, sampled responses, reasoning traces, multi-agent interaction, and hybrid uncertainty cues.</em>
 </p>
 
 <!-- <p align="center">
