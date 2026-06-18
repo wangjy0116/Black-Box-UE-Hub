@@ -339,9 +339,15 @@ In closed-ended QA, the answer space is predefined, so methods that explicitly e
 <p align="center">
   <img src="fig/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
 </p>
+<p align="center">
+  <b>Figure: Overall comparison on closed-ended QA.</b><br>
+</p>
 
 <p align="center">
   <img src="fig/closed-ended-all.png" alt="Closed-ended QA results for all methods" width="95%">
+</p>
+<p align="center">
+  <b>Table: Closed-ended QA results for all applicable methods.</b><br>
 </p>
 
 ---
