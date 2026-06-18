@@ -337,7 +337,7 @@ This group includes explanation-based, multi-agent, and hybrid methods. Hybrid m
 In closed-ended QA, the answer space is predefined, so methods that explicitly exploit candidate options show clear advantages. T3 and UF achieve strong discriminative performance by reasoning over candidate explanations or decomposing confidence into question-level uncertainty and answer fidelity. Among more general methods, sampling-aggregated verbalization remains competitive, and VPD shows strong calibration because it directly elicits a normalized confidence distribution over candidate answers.
 
 <p align="center">
-  <img src="fig/closed-ended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
+  <img src="fig/closedended.png" alt="Comparison of UE methods on closed-ended QA" width="95%">
 </p>
 
 <p align="center">
