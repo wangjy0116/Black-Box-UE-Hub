@@ -19,6 +19,11 @@
   <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
 </p>
 
+<p align="center">
+  <b>Overview of black-box UE for LLMs.</b><br>
+  <em>Black-box UE estimates answer reliability from externally observable signals, such as verbalized confidence, sampled responses, reasoning traces, multi-agent interaction, and hybrid uncertainty cues.</em>
+</p>
+
 <!-- <p align="center">
   <a href="https://awesome.re"><img src="https://awesome.re/badge.svg" alt="Awesome"></a>
   <img src="https://img.shields.io/badge/Taxonomy-5%20Categories-blue" alt="Taxonomy">
@@ -110,6 +115,7 @@ We organize black-box UE methods into five categories:
 ## 📚 Method Catalog
 
 ### 🗣️ Verbalization-based
+Verbalization-based methods estimate uncertainty by explicitly eliciting the model's own assessment of how likely its answer is to be correct. Their central idea is that uncertainty can be expressed directly in the model's output, either in numeric form or through natural-language cues. Accordingly, we divide this family into two subtypes: \emph{numeric verbalization}, which asks the model to report an explicit probability or score, and \emph{linguistic verbalization}, which infers confidence from hedging expressions or epistemic language.
 
 | Method | Venue | Computation | Calibration | Open-ended | Closed-ended | Code |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -124,6 +130,7 @@ We organize black-box UE methods into five categories:
 ---
 
 ### 🎲 Sampling-based
+Sampling-based methods estimate uncertainty by generating multiple responses for the same input, either directly or under controlled perturbations, and then analyzing their variation, similarity, or stability. The intuition is that if the model produces similar answers across repeated generations, its prediction is more likely to be reliable; in contrast, if the responses vary substantially, the model is likely to be more uncertain. According to whether the responses are generated from the original input or from perturbed variants of the input, these methods can be divided into two categories: \emph{direct sampling} and \emph{perturbation-based sampling}.
 
 | Method | Venue | Computation | Calibration | Open-ended | Closed-ended | Code |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -149,6 +156,7 @@ We organize black-box UE methods into five categories:
 ---
 
 ### 🧠 Explanation-based
+Explanation-based methods estimate uncertainty from the model's reasoning process rather than from the final answer alone. Their core assumption is that uncertainty may be reflected in the completeness or internal consistency of the generated reasoning chain. Accordingly, these methods either analyze weaknesses within a single reasoning process or compare multiple sampled reasoning processes to quantify confidence.
 
 | Method | Venue | Computation | Calibration | Open-ended | Closed-ended | Code |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -165,6 +173,7 @@ We organize black-box UE methods into five categories:
 ---
 
 ### 🤝 Multi-agent
+Multi-agent methods estimate uncertainty by introducing multiple agents with different roles, perspectives, or capabilities and then using their interactions as an additional source of evidence. Unlike single-model methods, which rely on one model's own generations, these approaches exploit agreement, disagreement, revision, and debate across agents to assess answer reliability. The general intuition is that an answer that remains stable under multi-agent interaction is more likely to be trustworthy.
 
 | Method | Venue | Computation | Calibration | Open-ended | Closed-ended | Code |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -177,6 +186,7 @@ We organize black-box UE methods into five categories:
 ---
 
 ### 🧩 Hybrid
+Hybrid methods are motivated by the observation that no single uncertainty signal is sufficient to capture model reliability robustly across settings. Different signals encode different aspects of uncertainty: consistency reflects output stability, verbalization reflects self-assessment, and candidate comparison or explanation reflects relative preference or reasoning support. Hybrid methods therefore combine multiple complementary signals in order to produce uncertainty estimates that are more robust than those obtained from any single source alone.
 
 | Method | Venue | Computation | Calibration | Open-ended | Closed-ended | Code |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
