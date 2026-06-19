@@ -259,9 +259,9 @@ run_pipeline.methods.example.yaml
 
 ```bash
 python run_pipeline.py \
-  --models qwen3-4b-instruct qwen3-30b-instruct \
-  --datasets triviaqa coqa hotpotqa truthfulqa_mc \
   --methods cot topk \
+  --datasets triviaqa hotpotqa coqa truthfulqa_mc \
+  --models qwen3-4b-instruct qwen3-30b-instruct deepseek-v3.2 gpt-5-mini \
   --steps generate extract calculate
 ```
 
