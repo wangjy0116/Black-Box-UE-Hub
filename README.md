@@ -16,6 +16,15 @@
 </p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2606.19868">
+    <img src="https://img.shields.io/badge/arXiv-2606.19868-b31b1b.svg" alt="arXiv">
+  </a>
+  <a href="https://arxiv.org/pdf/2606.19868">
+    <img src="https://img.shields.io/badge/Paper-PDF-blue.svg" alt="Paper PDF">
+  </a>
+</p>
+
+<p align="center">
   <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
 </p>
 
