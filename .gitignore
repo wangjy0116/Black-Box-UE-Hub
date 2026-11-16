@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local configuration and synchronization metadata
+src/config_self.py
+.stfolder/
