@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Optional, Tuple
-import re
 import json
 from tqdm import tqdm
 import numpy as np
@@ -154,7 +153,7 @@ Output ONLY a single JSON object with fields in this exact order:
     def generate(self, **kwargs: Any,):
         messages = []
         for item in self.dataset:
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 system = self.build_system_prompt(item)
             else:
                 system = self.build_system_prompt_open(item)
@@ -193,7 +192,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 text = s.get("text", "")
                 if "answer" not in s.keys():
                     ans, conf = self.parse_answer_confidence(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         s["answer"] = {}
                         s["confidence"] = {}
                         for k in ans.keys():
@@ -294,7 +293,7 @@ Output ONLY a single JSON object with fields in this exact order:
                     item["pred_score"] = 1.0
                 continue
 
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 clusters = [[did] for did in range(len(dedup_texts))]
                 item["cluster"] = clusters
                 dedup2cid = {did: text2id[dedup_texts[did]] for did in range(len(dedup_texts))}

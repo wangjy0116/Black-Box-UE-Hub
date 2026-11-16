@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import os
-import re
 import numpy as np
 import json
 from tqdm import tqdm
@@ -168,16 +167,21 @@ Output ONLY a single JSON object with fields in this exact order:
             float(x) for x in seu_scores_dev
             if x is not None and not np.isnan(x)
         ]
-        u_min = float(np.min(valid_scores_dev))
-        u_max = float(np.max(valid_scores_dev))
+        if valid_scores_dev:
+            u_min = float(np.min(valid_scores_dev))
+            u_max = float(np.max(valid_scores_dev))
+        else:
+            u_min, u_max = 0.0, 1.0
         denom = (u_max - u_min)
 
         def minmax(x: float) -> float:
             if denom <= 1e-12:
                 return 0.0 
             v = (x - u_min) / denom
-            if v < 0.0: v = 0.0
-            if v > 1.0: v = 1.0
+            if v < 0.0:
+                v = 0.0
+            if v > 1.0:
+                v = 1.0
             return float(v)
 
         for item, seu_score in zip(dataset, seu_scores_test):

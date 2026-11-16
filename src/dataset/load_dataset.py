@@ -2,6 +2,9 @@ import os
 import json
 from src import config
 
+
+SINGLE_SPLIT_DATASETS = {"truthfulqa_mc", "gpqa_diamond"}
+
 def _split_path(cache_dir: str, dataset_name: str, split: str):
     return os.path.join(os.path.join(cache_dir, dataset_name), f"{split}.json")
 
@@ -26,14 +29,20 @@ def _build_dataset(dataset_name: str, cache_dir: str):
     elif dataset_name == "truthfulqa_mc":
         from src.dataset.truthfulqa_mc import build_truthfulqa_mc_dataset
         build_truthfulqa_mc_dataset(output_dir=dataset_cache_dir)
+    elif dataset_name == "gpqa_diamond":
+        from src.dataset.gpqa_diamond import build_gpqa_diamond_dataset
+        build_gpqa_diamond_dataset(output_dir=dataset_cache_dir)
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
 
 
 def load_dataset(dataset_name: str, dev_size: int, test_size: int):
+    dev_size = int(dev_size)
+    test_size = int(test_size)
+
     cache_dir = config.DATASET_DIR
 
-    if dataset_name == "truthfulqa_mc":
+    if dataset_name in SINGLE_SPLIT_DATASETS:
         test_path = _split_path(cache_dir, dataset_name, "test")
         if not os.path.exists(test_path):
             _build_dataset(dataset_name, cache_dir)

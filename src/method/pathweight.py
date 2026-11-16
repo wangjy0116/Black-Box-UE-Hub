@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 import os
 import json
-from collections import defaultdict
 import numpy as np
 import networkx as nx
 import ast
@@ -135,7 +134,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 if "answer" not in sample.keys():
                     text = sample.get("text", "")
                     ans = extract_final_answer(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         sample["answer"] = norm_mc(ans, item)
                     else:
                         sample["answer"] = ans
@@ -148,7 +147,7 @@ Output ONLY a single JSON object with fields in this exact order:
             if "answer" not in item["greedy_results"].keys():
                 text = item["greedy_results"].get("text", "")
                 ans = extract_final_answer(text)
-                if self.dataset_name == "truthfulqa_mc":
+                if item.get("options"):
                     item["greedy_results"]["answer"] = norm_mc(ans, item)
                 else:
                     item["greedy_results"]["answer"] = ans
@@ -283,14 +282,7 @@ Output ONLY a single JSON object with fields in this exact order:
         step_node_to_cluster = {}
 
         if len(all_step_texts) == 0:
-            return step_components, step_node_to_cluster
-
-        if len(all_step_texts) == 1:
-            _, _, node_id, _ = all_step_meta[0]
-            step_components = [[0]]
-            step_node_to_cluster[node_id] = 0
-            G.nodes[node_id]["weight"] = 1
-            return step_components, step_node_to_cluster
+            return step_components, step_node_to_cluster, []
 
         question = item.get("question", "")
 
@@ -300,17 +292,20 @@ Output ONLY a single JSON object with fields in this exact order:
             tokenizer = tokenizer,
             nli_model = nli_model
         )
+        graph_eq_mat = np.eye(len(all_step_meta), dtype=bool)
         for a in range(len(all_step_meta)):
-            ci, sj, ni, ti = all_step_meta[a]
+            ci, _, ni, _ = all_step_meta[a]
             for b in range(a + 1, len(all_step_meta)):
-                ck, sl, nj, tj = all_step_meta[b]
+                ck, _, nj, _ = all_step_meta[b]
                 if ci == ck:
                     continue
                 if step_eq_mat[a, b]:
+                    graph_eq_mat[a, b] = True
+                    graph_eq_mat[b, a] = True
                     G.add_edge(ni, nj, edge_type="inter")
                     G.add_edge(nj, ni, edge_type="inter")
 
-        step_components = self._cluster_from_eq_mat(step_eq_mat)
+        step_components = self._cluster_from_eq_mat(graph_eq_mat)
         for cid, comp in enumerate(step_components):
             comp_size = len(comp)
             for idx in comp:
@@ -318,7 +313,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 step_node_to_cluster[node_id] = cid
                 G.nodes[node_id]["weight"] = comp_size
 
-        return step_components, step_node_to_cluster
+        return step_components, step_node_to_cluster, graph_eq_mat.tolist()
 
     def add_merged_answer_nodes(
         self,
@@ -335,9 +330,24 @@ Output ONLY a single JSON object with fields in this exact order:
         chain_answer_node_ids = []
 
         if len(answer_texts) == 0:
-            return answer_nodes, answer_text_to_node, chain_answer_node_ids
+            return answer_nodes, answer_text_to_node, chain_answer_node_ids, []
 
         question = item.get("question", "")
+
+        if item.get("options"):
+            labels = [norm_mc(text, item) for text in answer_texts]
+            ans_eq_mat = np.eye(len(answer_texts), dtype=bool)
+            for i, label in enumerate(labels):
+                for j in range(i + 1, len(labels)):
+                    same = label is not None and label == labels[j]
+                    ans_eq_mat[i, j] = ans_eq_mat[j, i] = same
+        else:
+            ans_eq_mat, _ = self.semantic_equiv_matrix(
+                question=question,
+                texts=answer_texts,
+                tokenizer=tokenizer,
+                nli_model=nli_model
+            )
 
         if len(answer_texts) == 1:
             ans_node = "A_0"
@@ -349,14 +359,12 @@ Output ONLY a single JSON object with fields in this exact order:
             )
             for last_step_node in chain_last_step_nodes:
                 G.add_edge(last_step_node, ans_node, edge_type="intra")
-            return [ans_node], {answer_texts[0]: ans_node}, [ans_node]
-
-        ans_eq_mat, _ = self.semantic_equiv_matrix(  
-            question=question,
-            texts=answer_texts,
-            tokenizer=tokenizer,
-            nli_model = nli_model
-        )
+            return (
+                [ans_node],
+                {answer_texts[0]: ans_node},
+                [ans_node],
+                ans_eq_mat.tolist(),
+            )
 
         answer_components = self._cluster_from_eq_mat(ans_eq_mat)
 
@@ -376,13 +384,19 @@ Output ONLY a single JSON object with fields in this exact order:
 
             for idx in comp:
                 idx_to_answer_node[idx] = ans_node
+                answer_text_to_node[answer_texts[idx]] = ans_node
 
         for i, last_step_node in enumerate(chain_last_step_nodes):
             ans_node = idx_to_answer_node[i]
             G.add_edge(last_step_node, ans_node, edge_type="intra")
             chain_answer_node_ids.append(ans_node)
 
-        return answer_nodes, answer_text_to_node, chain_answer_node_ids
+        return (
+            answer_nodes,
+            answer_text_to_node,
+            chain_answer_node_ids,
+            ans_eq_mat.tolist(),
+        )
 
     def build_reasoning_graph(
         self,
@@ -399,7 +413,11 @@ Output ONLY a single JSON object with fields in this exact order:
                 valid_samples=valid_samples,
             )
 
-        step_components, step_node_to_cluster = self.add_inter_edges_between_equivalent_steps(
+        (
+            step_components,
+            step_node_to_cluster,
+            step_equivalence_matrix,
+        ) = self.add_inter_edges_between_equivalent_steps(
                 G=G,
                 item=item,
                 all_step_texts=all_step_texts,
@@ -408,7 +426,12 @@ Output ONLY a single JSON object with fields in this exact order:
                 nli_model=nli_model
             )
 
-        answer_nodes, answer_text_to_node, chain_answer_node_ids = self.add_merged_answer_nodes(
+        (
+            answer_nodes,
+            answer_text_to_node,
+            chain_answer_node_ids,
+            answer_equivalence_matrix,
+        ) = self.add_merged_answer_nodes(
                 G=G,
                 item=item,
                 answer_texts=answer_texts,
@@ -424,40 +447,56 @@ Output ONLY a single JSON object with fields in this exact order:
             "step_nodes": [x[2] for x in all_step_meta],
             "step_clusters": step_components,
             "step_node_to_cluster": step_node_to_cluster,
+            "reasoning_step_equivalence_matrix": step_equivalence_matrix,
+            "answer_equivalence_matrix": answer_equivalence_matrix,
         }
 
     def _remove_loops_by_dropping_inter_edges(self, G: nx.DiGraph) -> nx.DiGraph:
+        """Remove mixed cycles while keeping valid equivalence pairs intact."""
         H = G.copy()
-        max_iter = 10000
-        it = 0
 
-        while it < max_iter:
-            it += 1
-            try:
-                cycle = next(nx.simple_cycles(H), None)
-            except Exception:
+        def has_mixed_path(source: str, target: str, blocked: frozenset) -> bool:
+            stack = [(source, False)]
+            visited = {(source, False)}
+            while stack:
+                node, used_intra = stack.pop()
+                for successor in H.successors(node):
+                    if frozenset((node, successor)) == blocked:
+                        continue
+                    edge_is_intra = H.edges[node, successor].get("edge_type") == "intra"
+                    state = (successor, used_intra or edge_is_intra)
+                    if successor == target and state[1]:
+                        return True
+                    if state not in visited:
+                        visited.add(state)
+                        stack.append(state)
+            return False
+
+        while True:
+            inter_pairs = sorted(
+                {
+                    tuple(sorted((u, v)))
+                    for u, v, data in H.edges(data=True)
+                    if data.get("edge_type") == "inter"
+                }
+            )
+            pair_to_remove = next(
+                (
+                    (u, v)
+                    for u, v in inter_pairs
+                    if has_mixed_path(v, u, frozenset((u, v)))
+                    or has_mixed_path(u, v, frozenset((u, v)))
+                ),
+                None,
+            )
+            if pair_to_remove is None:
                 break
 
-            if cycle is None:
-                break
-
-            removed = False
-            m = len(cycle)
-            for idx in range(m):
-                u = cycle[idx]
-                v = cycle[(idx + 1) % m]
-                if H.has_edge(u, v):
-                    etype = H.edges[u, v].get("edge_type", "")
-                    if etype == "inter":
-                        H.remove_edge(u, v)
-                        removed = True
-                        break
-
-            if not removed:
-                u = cycle[0]
-                v = cycle[1 % len(cycle)]
-                if H.has_edge(u, v):
-                    H.remove_edge(u, v)
+            u, v = pair_to_remove
+            if H.has_edge(u, v) and H.edges[u, v].get("edge_type") == "inter":
+                H.remove_edge(u, v)
+            if H.has_edge(v, u) and H.edges[v, u].get("edge_type") == "inter":
+                H.remove_edge(v, u)
 
         return H
 
@@ -525,23 +564,35 @@ Output ONLY a single JSON object with fields in this exact order:
         source = "MQ"
         MG.add_node(source, node_type="question", text="Q", weight=1)
 
-        step_node_to_cluster = meta.get("step_node_to_cluster", {})
+        step_nodes = [node for node in meta.get("step_nodes", []) if node in G]
         answer_nodes = meta.get("answer_nodes", [])
-
         raw_to_merged = {"Q": source}
 
-        for raw_node, cid in step_node_to_cluster.items():
-            mnode = f"M{raw_node}"
-            text = G.nodes[raw_node].get("text", "")
-            cluster_size = sum(1 for _, c in step_node_to_cluster.items() if c == cid)
+        equivalence_graph = nx.Graph()
+        equivalence_graph.add_nodes_from(step_nodes)
+        equivalence_graph.add_edges_from(
+            (u, v)
+            for u, v, data in G.edges(data=True)
+            if data.get("edge_type") == "inter"
+            and u in equivalence_graph
+            and v in equivalence_graph
+        )
+        step_components = sorted(
+            (sorted(component) for component in nx.connected_components(equivalence_graph)),
+            key=lambda component: component[0],
+        )
 
+        for cid, members in enumerate(step_components):
+            mnode = f"MS_{cid}"
+            text = G.nodes[members[0]].get("text", "") if members else ""
             MG.add_node(
                 mnode,
-                node_type="step",
+                node_type="merged_step",
                 text=text,
-                weight=cluster_size,
+                weight=max(len(members), 1),
             )
-            raw_to_merged[raw_node] = mnode
+            for raw_node in members:
+                raw_to_merged[raw_node] = mnode
 
         merged_answer_nodes = []
         for ans_node in answer_nodes:
@@ -577,25 +628,35 @@ Output ONLY a single JSON object with fields in this exact order:
         max_path_length: int = 12,
         id=None
     ):
+        # Kept for configuration compatibility; the DAG dynamic program
+        # computes all paths without an arbitrary length cutoff.
+        _ = max_path_length, id
         answer_nodes = meta.get("answer_nodes", [])
         if len(answer_nodes) == 0:
             return {}
 
         MG, source, merged_answer_nodes, _ = self.build_pathweight_merged_graph(G, meta)
-        raw_scores = {}
-        for orig_ans_node, mans in zip(answer_nodes, merged_answer_nodes):
-            total = 0.0
-            paths = self.enumerate_paths_with_cutoff(MG, source, mans, cutoff=max_path_length)
+        if not nx.is_directed_acyclic_graph(MG):
+            raise ValueError("PATHWEIGHT merged graph must be acyclic")
 
-            for p in paths:
-                score = 1.0
-                for v in p:
-                    if MG.nodes[v].get("node_type", "") in ["merged_answer", "answer", "raw_answer"]:
-                        continue
-                    score *= float(MG.nodes[v].get("weight", 1.0))
-                total += score
+        weighted_path_sums = {node: 0.0 for node in MG.nodes}
+        weighted_path_sums[source] = 1.0
+        for node in nx.topological_sort(MG):
+            for successor in MG.successors(node):
+                successor_type = MG.nodes[successor].get("node_type", "")
+                successor_weight = (
+                    1.0
+                    if successor_type == "merged_answer"
+                    else float(MG.nodes[successor].get("weight", 1.0))
+                )
+                weighted_path_sums[successor] += (
+                    weighted_path_sums[node] * successor_weight
+                )
 
-            raw_scores[orig_ans_node] = total
+        raw_scores = {
+            original: weighted_path_sums.get(merged, 0.0)
+            for original, merged in zip(answer_nodes, merged_answer_nodes)
+        }
 
         s = sum(raw_scores.values())
         if s <= 0:
@@ -609,7 +670,14 @@ Output ONLY a single JSON object with fields in this exact order:
         with open(sample_test_path, "r", encoding="utf-8") as f:
             dataset = json.load(f)
 
-        if "cots" not in dataset[0]["sample_results"][0]:
+        needs_steps = any(
+            "cots" not in sample
+            for item in dataset
+            for sample in item.get("sample_results", [])[: self.sample_num]
+        ) or any(
+            "cots" not in item.get("greedy_results", {}) for item in dataset
+        )
+        if needs_steps:
             dataset = generate_steps(dataset, self.sample_num)
 
         with open(sample_test_path, "w", encoding="utf-8") as f:
@@ -623,7 +691,7 @@ Output ONLY a single JSON object with fields in this exact order:
             output.append({"id": item["id"], "question": item["question"],
                     "description": item["description"], "ground_truth": item["ground_truth"],
                     "greedy_answer": item["greedy_results"]["answer"]})
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 output[-1]["options"] = item["options"]
             if self.dataset_name == "coqa":
                 output[-1]["story"] = item["story"]
@@ -635,7 +703,11 @@ Output ONLY a single JSON object with fields in this exact order:
             valid_samples = []
             for s in samples:
                 steps = s.get("cots", [])
-                ans = self._normalize_answer_for_graph(s.get("answer"))
+                ans = (
+                    norm_mc(s.get("answer"), sample_item)
+                    if sample_item.get("options")
+                    else self._normalize_answer_for_graph(s.get("answer"))
+                )
                 if isinstance(steps, list) and len(steps) > 0 and ans is not None:
                     clean_steps = [str(x).strip() for x in steps if str(x).strip()]
                     if len(clean_steps) > 0:
@@ -664,6 +736,12 @@ Output ONLY a single JSON object with fields in this exact order:
                 tokenizer=tokenizer,
                 nli_model=nli_model,
             )
+            output_item["reasoning_step_equivalence_matrix"] = meta[
+                "reasoning_step_equivalence_matrix"
+            ]
+            output_item["answer_equivalence_matrix"] = meta[
+                "answer_equivalence_matrix"
+            ]
             G = self._remove_loops_by_dropping_inter_edges(G)
             answer_nodes = meta["answer_nodes"]
             cen_scores = self.compute_cenconf(

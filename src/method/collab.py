@@ -1,19 +1,14 @@
 import os
 import re
 import json
-import time
-import random
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from openai import OpenAI
 from tqdm import tqdm
 from src.utils import check_entailment
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import sys
 from src import config
-from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
@@ -21,7 +16,9 @@ api_base = os.getenv("OPENROUTER_API_BASE")
 
 def eval_ans(dataset_name, item, ans, reference, method: str = "gpt_cls"):
 
-    if dataset_name == "truthfulqa_mc":
+    if item.get("options"):
+        if not isinstance(ans, str):
+            return False
         labels = [o["label"] for o in item["options"]]
         if ans.upper() in labels:
             if ans.upper() == reference:
@@ -137,7 +134,7 @@ def extract_conf_metrics(res: str) -> Tuple[float, float, float]:
         for k in res_parsed.keys():
             if text.startswith(f"{k}:"):              
                 try:
-                    text_val = re.sub("[\(\[].*?[\)\]]", "", text.split(f"{k}:")[-1])
+                    text_val = re.sub(r"[\(\[].*?[\)\]]", "", text.split(f"{k}:")[-1])
                     metric = float(text_val.strip())
                 except ValueError:
                     logging.debug(f"metric_name {k} text: {text}")
@@ -146,8 +143,10 @@ def extract_conf_metrics(res: str) -> Tuple[float, float, float]:
     logging.debug(f"conf_metrics parsed {res_parsed}")
     return res_parsed
 
-def softmax(l: List[float]) -> List[float]:
-    return np.exp(l) / np.sum(np.exp(l), axis=0)
+def softmax(values: List[float]) -> List[float]:
+    shifted = np.asarray(values, dtype=float) - np.max(values)
+    weights = np.exp(shifted)
+    return (weights / np.sum(weights)).tolist()
 
 
 class BaseAgent:
@@ -214,7 +213,7 @@ class CoTAgent:
         if dataset_name == "coqa":
             user1 = f"Context: {item['story']}\n" + user1
         intermediate = self.model.generate_one([{"role": "system", "content": self.system_msg}, {"role": "user", "content": user1}], self.temperature)
-        if intermediate is not None : intermediate.strip()
+        intermediate = (intermediate or "").strip()
 
 
         system2 = f"Question: {query}\n{intermediate}"
@@ -223,7 +222,7 @@ class CoTAgent:
         user2 = self.default_trigger_prompt.format(description=item["description"][:-1].lower())
         raw = self.model.generate_one([{"role": "user", "content": system2+"\n\n"+user2}], self.temperature)
         
-        if raw is not None : raw.strip()
+        raw = (raw or "Answer: Abstain\nConfidence: 0").strip()
 
         return raw
 
@@ -352,7 +351,6 @@ class Collab:
 
     def populate_expert_agents(self, selection: Dict[str, int]) -> Dict[str, Any]:
         pool = {k: [] for k in selection.keys()}
-        pretrained_instances = {}
         for k, count in selection.items():
             for i in range(count):
                 temperature = np.random.rand() + 0.5 if self.mix_temperature else self.temperature
@@ -765,8 +763,6 @@ class Collab:
 
         logging.debug(f"expert agents: {expert_agent_pool}\ngeneral agents: {general_agent_pool}")
 
-        if "qwen3-4b" in self.model_name.lower():
-            self.max_workers = 1
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [
                 executor.submit(

@@ -203,7 +203,7 @@ Output ONLY a single JSON object with fields in this exact order:
         if len(dedup_answers) == 1:
             return 1.0, dedup_answers[0], {dedup_answers[0]: len(answers)}
 
-        if self.dataset_name == "truthfulqa_mc":
+        if item.get("options"):
             counts = Counter(answers)
             majority_answer, majority_count = counts.most_common(1)[0]
             kappa_ans = float(majority_count / len(answers))
@@ -361,7 +361,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 if "answer" not in s.keys():
                     text = s.get("text", "")
                     ans, conf = self.parse_answer_confidence(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         s["answer"] = norm_mc(ans, item)
                     else:
                         s["answer"] = ans

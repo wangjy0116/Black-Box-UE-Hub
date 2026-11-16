@@ -1,9 +1,7 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 import os
-import re
 from src.utils import build_sample_path, sample_generate, extract_final_answer, compute_sentence_greedy_semantic, load_nli_model
 import numpy as np
-import copy
 import json
 import torch
 from tqdm import tqdm

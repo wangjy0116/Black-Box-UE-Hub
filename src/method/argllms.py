@@ -1,6 +1,7 @@
 import json
+import math
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from copy import deepcopy
 import re
 from tqdm import tqdm
@@ -55,7 +56,6 @@ class UncertaintyEvaluatorPrompts:
                 }
                 return likelihood_dict[likelihood]
 
-            relation = "supports" if support else "refutes"
             options = [
                 "fully confident",
                 "highly confident",
@@ -123,7 +123,7 @@ class UncertaintyEvaluatorPrompts:
 
         constraints = {
             "constraint_prefix": "Likelihood:",
-            "constraint_options": [f" {l}%" for l in range(0, 101)],
+            "constraint_options": [f" {level}%" for level in range(0, 101)],
             "constraint_end_after_options": True,
         }
 
@@ -234,7 +234,6 @@ class LinearInfluence:
     def __str__(self) -> str:
         return __class__.__name__ + f"({self.conservativeness})"
 
-import math
 class EulerBasedInfluence:
     def __init__(self) -> None:
         pass
@@ -255,7 +254,7 @@ class Argument:
         self.supporters = supporters
         self.parent = None
 
-        if type(initial_weight) != int and type(initial_weight) != float:
+        if not isinstance(initial_weight, (int, float)):
             raise TypeError("initial_weight must be of type integer or float")
 
         if strength is None:
@@ -377,10 +376,10 @@ class BAG:
                             self.add_support(supporter, supported)
 
     def add_attack(self, attacker, attacked):
-        if type(attacker) != Argument:
+        if not isinstance(attacker, Argument):
             raise TypeError("attacker must be of type Argument")
 
-        if type(attacked) != Argument:
+        if not isinstance(attacked, Argument):
             raise TypeError("attacked must be of type Argument")
 
         if attacker.name in self.arguments:
@@ -398,10 +397,10 @@ class BAG:
         self.attacks.append(Attack(attacker, attacked))
 
     def add_support(self, supporter, supported):
-        if type(supporter) != Argument:
+        if not isinstance(supporter, Argument):
             raise TypeError("supporter must be of type Argument")
 
-        if type(supported) != Argument:
+        if not isinstance(supported, Argument):
             raise TypeError("supported must be of type Argument")
 
         if supporter.name in self.arguments:
@@ -495,7 +494,7 @@ class ArgumentMiner:
     def generate_arguments(self, statement, base_score_generator):
         """Generates arguments for and against a statement, up to the given breadth and depth."""
         self.argument_tree = BAG()  
-        topic = Argument(f"db0", statement, 0.5)
+        topic = Argument("db0", statement, 0.5)
         topic_base_score = base_score_generator(statement, topic=True)
         
         previous_layer = []
@@ -543,7 +542,6 @@ class ArgumentMiner:
     def cut_arguments(self, arguments):
         pass
 
-import random
 
 class UncertaintyEstimator:
     def __init__(self, llm_manager, generate_prompt, verbal=False, temperature=1.0):
@@ -617,7 +615,7 @@ def computeTopOrder(bag):
 def computeStrengthValues(bag, agg_f, inf_f):
     
     order = computeTopOrder(bag)
-    if order == None:
+    if order is None:
         return None
     
     strength = {arg:arg.initial_weight for arg in order}
@@ -816,9 +814,6 @@ Output ONLY a single JSON object with fields in this exact order:
             am_prompts = [self.am_prompt]
         if self.ue_prompt != "all":
             ue_prompts = [self.ue_prompt]
-
-        if "qwen3-4b" in self.model_name.lower():
-            self.max_workers = 1
 
         results = [None] * len(sample_dataset)
 

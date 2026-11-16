@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import ast
 import os
 import re
@@ -211,7 +211,10 @@ Output ONLY a single JSON object with fields in this exact order:
         return []
 
     def generate(self, **kwargs: Any):
-        para_num = self.sample_num - 1
+        # ``sample_num`` denotes the number of perturbed questions. The
+        # original question/greedy generation is kept only as the reference
+        # answer and must not consume one of the perturbation slots.
+        para_num = self.sample_num
         sample_test_path, _ = build_sample_path(self.save_path)
 
         if not os.path.exists(sample_test_path):
@@ -230,10 +233,10 @@ Output ONLY a single JSON object with fields in this exact order:
         with open(sample_test_path, "r", encoding="utf-8") as f:
             sample_test_dataset = json.load(f)
 
-        if "perturbed_results" not in sample_test_dataset[0]:
+        if sample_test_dataset and "perturbed_results" not in sample_test_dataset[0]:
             para_messages_batch = [self.build_paraphrase_messages(item, para_num) for item in self.dataset]
 
-            if self.show:
+            if self.show and para_messages_batch:
                 print(para_messages_batch[0])
 
             para_outputs = self.model.generate_batch(para_messages_batch, temperature=0.1, **kwargs)
@@ -242,7 +245,10 @@ Output ONLY a single JSON object with fields in this exact order:
                 item["para_outputs"] = para
                 paraphrases = self.parse_paraphrase_output(para, item, para_num)
                 paraphrases = paraphrases[:para_num]
-                item["perturbations"] = [item["question"]] + paraphrases
+                # Only rewritten questions participate in SPUQ aggregation.
+                # The original question and greedy result are not added as an
+                # extra sample.
+                item["perturbations"] = paraphrases
 
             answer_messages_batch = []
             answer_meta = []
@@ -260,10 +266,18 @@ Output ONLY a single JSON object with fields in this exact order:
                     answer_messages_batch.append(msg)
                     answer_meta.append((idx, pert))
 
-            if self.show:
+            if self.show and answer_messages_batch:
                 print(answer_messages_batch[0])
 
-            answer_outputs = self.model.generate_batch(answer_messages_batch, temperature=self.temperature, **kwargs)
+            answer_outputs = (
+                self.model.generate_batch(
+                    answer_messages_batch,
+                    temperature=self.temperature,
+                    **kwargs,
+                )
+                if answer_messages_batch
+                else []
+            )
 
             for item in sample_test_dataset:
                 item["perturbed_results"] = []
@@ -310,6 +324,11 @@ Output ONLY a single JSON object with fields in this exact order:
         for item in tqdm(dataset):
             sample_results = item["perturbed_results"]
             origin_question = item["question"]
+            greedy_answer = item.get("greedy_results", {}).get("answer")
+
+            if not isinstance(greedy_answer, str) or not greedy_answer.strip():
+                spuq_scores.append(None)
+                continue
 
             sum_wt = 0.0
             sum_conf = 0.0
@@ -321,7 +340,7 @@ Output ONLY a single JSON object with fields in this exact order:
                     continue
 
                 wt = self.text_sim(origin_question, perturbed_question)
-                conf = self.text_sim(item["greedy_results"]["answer"], perturbed_answer)
+                conf = self.text_sim(greedy_answer, perturbed_answer)
                 sum_conf += conf * wt
                 sum_wt += wt
 
@@ -342,6 +361,8 @@ Output ONLY a single JSON object with fields in this exact order:
 
             if "story" in item.keys():
                 output[-1]["story"] = item["story"]
+            if "options" in item:
+                output[-1]["options"] = item["options"]
 
 
         with open(self.save_path, "w", encoding="utf-8") as f:

@@ -226,7 +226,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 if "answer" not in s.keys():
                     text = s.get("text", "")
                     ans, conf_t, conf_d = self.parse_answer_confidence(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         s["answer"] = {}
                         s["confidence_text"] = {}
                         s["confidence"] = {}
@@ -304,7 +304,7 @@ Output ONLY a single JSON object with fields in this exact order:
                     item["pred_score"] = 1.0
                 continue
 
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 clusters = [[did] for did in range(len(dedup_texts))]
                 item["cluster"] = clusters
                 dedup2cid = {did: text2id[dedup_texts[did]] for did in range(len(dedup_texts))}

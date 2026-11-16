@@ -62,6 +62,12 @@ inve:
 spuq:
   sample_num: 5
   temperature: 1.0
+sure:
+  sample_num: 5
+  temperature: 1.0
+  anchor_count: 3
+  anchor_temperature: 0.2
+  candidate_answers_per_paraphrase: 2
 bsdetector:
   sample_num: 5
   temperature: 1.0

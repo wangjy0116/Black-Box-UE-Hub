@@ -1,11 +1,10 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import ast
 import json
 import os
 import re
 import numpy as np
 from tqdm import tqdm
-from scipy.stats import wasserstein_distance
 from src import config
 from src.utils import (
     build_sample_path,
@@ -81,7 +80,12 @@ Output ONLY a single JSON object with fields in this exact order:
 
     def row_normalize(self, matrix):
         row_sums = matrix.sum(axis=1, keepdims=True)
-        return matrix / row_sums
+        return np.divide(
+            matrix,
+            row_sums,
+            out=np.zeros_like(matrix, dtype=float),
+            where=np.abs(row_sums) > 1e-12,
+        )
 
     def compute_entropy(self, prob_vector):
         prob_vector = prob_vector[prob_vector > 0]  
@@ -303,7 +307,10 @@ Output ONLY a single JSON object with fields in this exact order:
         return []
 
     def generate(self, **kwargs: Any) -> None:
-        para_num = self.sample_num - 1
+        # ``sample_num`` is the number of rewritten questions used to build
+        # the InvEntropy matrices. The original question/greedy generation
+        # remains available only as the reported prediction.
+        para_num = self.sample_num
         sample_test_path, sample_dev_path = build_sample_path(self.save_path)
 
         build_user = self.build_coqa_user_prompt if self.dataset_name == "coqa" else self.build_user_prompt
@@ -327,12 +334,15 @@ Output ONLY a single JSON object with fields in this exact order:
             with open(save_path, "r", encoding="utf-8") as f:
                 sample_dataset = json.load(f)
 
+            if not sample_dataset:
+                return sample_dataset
+
             if "perturbed_results" in sample_dataset[0]:
                 return sample_dataset
 
             para_messages_batch = [self.build_paraphrase_messages(item, para_num) for item in split_dataset]
 
-            if self.show:
+            if self.show and para_messages_batch:
                 print(para_messages_batch[0])
 
             para_outputs = self.model.generate_batch(para_messages_batch, temperature=0.1, **kwargs)
@@ -341,7 +351,10 @@ Output ONLY a single JSON object with fields in this exact order:
                 item["para_outputs"] = para
                 paraphrases = self.parse_paraphrase_output(para, item, para_num)
                 paraphrases = paraphrases[:para_num]
-                item["perturbations"] = [item["question"]] + paraphrases
+                # Build both matrices exclusively from rewritten questions
+                # and their answers. Neither the original question nor the
+                # greedy result is inserted into the matrices.
+                item["perturbations"] = paraphrases
 
             answer_messages_batch = []
             answer_meta = []
@@ -360,10 +373,18 @@ Output ONLY a single JSON object with fields in this exact order:
                     answer_messages_batch.append(message)
                     answer_meta.append((idx, pert))
 
-            if self.show:
+            if self.show and answer_messages_batch:
                 print(answer_messages_batch[0])
 
-            answer_outputs = self.model.generate_batch(answer_messages_batch, temperature=self.temperature, **kwargs)
+            answer_outputs = (
+                self.model.generate_batch(
+                    answer_messages_batch,
+                    temperature=self.temperature,
+                    **kwargs,
+                )
+                if answer_messages_batch
+                else []
+            )
 
             for item in sample_dataset:
                 item["perturbed_results"] = []
@@ -428,6 +449,10 @@ Output ONLY a single JSON object with fields in this exact order:
                     answer = "none"
                 x.append(question)
                 y.append(answer)
+
+            if not x:
+                results.append(None)
+                continue
             
             # compute similarity matrix
             simX = self.compute_cosine_matrix(x)
@@ -449,7 +474,12 @@ Output ONLY a single JSON object with fields in this exact order:
             px_marginal_I = (pi_uniform @ py @ py @ px).T
 
             # compute py_x by baye's rule
-            py_x_I = (px_y_I * py_marginal_I) / px_marginal_I.T
+            py_x_I = np.divide(
+                px_y_I * py_marginal_I,
+                px_marginal_I.T,
+                out=np.zeros_like(px_y_I, dtype=float),
+                where=np.abs(px_marginal_I.T) > 1e-12,
+            )
 
             # compute pxy
             pxy_I  = px_y_I * py_marginal_I
@@ -459,10 +489,8 @@ Output ONLY a single JSON object with fields in this exact order:
             py_x_I = py_x_I.T
             pxy_I = pxy_I.T
 
-            WD_px_py_I = wasserstein_distance(px_marginal_I.flatten(), py_marginal_I.flatten())
-            entropy_y_x_I = -np.sum(np.diag(py_x_I) * np.log(np.diag(py_x_I)))
-            entropy_x_y_I = -np.sum(np.diag(px_y_I) * np.log(np.diag(px_y_I)))
-            max_y_I = max(py_marginal_I).item()
+            diag_px_y = np.clip(np.diag(px_y_I), 1e-12, None)
+            entropy_x_y_I = -np.sum(diag_px_y * np.log(diag_px_y))
             results.append(entropy_x_y_I)
 
         return results

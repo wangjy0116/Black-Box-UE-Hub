@@ -1,17 +1,17 @@
 import ast
+import copy
 import json
 import os
-import re
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from tqdm import tqdm
 import numpy as np
 import spacy
 import torch
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
-from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
-from vllm import LLM, SamplingParams
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import src.config as config
+from src.model.vllm_adapter import VLLMAdapter
 
 def extract_final_answer(text: str) -> Optional[str]:
     if not isinstance(text, str):
@@ -72,8 +72,8 @@ def sample_generate(
     show: bool = True,
     **kwargs: Any,
 ) -> List[Dict[str, Any]]:
-
-    out = [dict(x) for x in dataset]
+    out = copy.deepcopy(dataset)
+    requested_samples = max(0, int(sample_num))
 
     sample_pairs = []
     greedy_pairs = []
@@ -82,37 +82,47 @@ def sample_generate(
         system = build_system(item)
         user = build_user(item)
         greedy_pairs.append([{"role":"system", "content": system}, {"role":"user", "content":user}])
-        for _ in range(int(sample_num)):
+        for _ in range(requested_samples):
             sample_pairs.append([{"role":"system", "content": system}, {"role":"user", "content":user}])
-    if show:
+    if show and sample_pairs:
         print(sample_pairs[0])
 
-    sample_texts = model.generate_batch(sample_pairs, temperature=temperature, **kwargs)
-    greedy_texts = model.generate_batch(greedy_pairs, temperature=0.1, **kwargs)
-
+    sample_texts = (
+        model.generate_batch(sample_pairs, temperature=temperature, **kwargs)
+        if sample_pairs
+        else []
+    )
+    greedy_texts = (
+        model.generate_batch(greedy_pairs, temperature=0.1, **kwargs)
+        if greedy_pairs
+        else []
+    )
     idx = 0
     for i, item in enumerate(out):
         samples = []
-        for _ in range(int(sample_num)):
+        for _ in range(requested_samples):
             samples.append({"text": sample_texts[idx]})
             idx += 1
         item[sample_key] = samples
         item[greedy_key] = {"text": greedy_texts[i]}
 
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    save_dir = os.path.dirname(save_path)
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
     with open(save_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)
+    return out
 
-def build_sample_path(output_path: str) -> str:
-    parts = os.path.normpath(output_path).split(os.sep)
-    keep = parts[-2:] if len(parts) >= 2 else parts
-    rest = os.path.join(*keep) if keep else os.path.basename(output_path)
-    return os.path.join("sample_test", rest), os.path.join("sample_dev", rest)
+def build_sample_path(output_path: str) -> Tuple[str, str]:
+    output = Path(output_path)
+    rest = Path(output.parent.name) / output.name
+    sample_root = Path(config.SAMPLE_DIR)
+    return str(sample_root / "test" / rest), str(sample_root / "dev" / rest)
 
-def norm_mc(s: str, item) -> str:
+def norm_mc(s: Any, item: Dict[str, Any]) -> Optional[str]:
     if not isinstance(s, str):
-        return ""
-    labels = [o["label"] for o in item["options"]]
+        return None
+    labels = [str(o["label"]).strip().upper() for o in item.get("options", [])]
     texts = []
     for o in item.get("options", []):
         t = o.get("text", "")
@@ -123,13 +133,14 @@ def norm_mc(s: str, item) -> str:
         t = t.upper()
         texts.append(t)
 
-    s = s.upper()
+    s = s.strip().upper()
+    if len(s) >= 2 and s[0] in "([" and s[-1] in ")]":
+        s = s[1:-1].strip()
     if s in labels:
         return s
-    if len(s)>1 and s[1]=='.' and s[0] in labels:
+    if len(s) > 1 and s[0] in labels and s[1] in ".):":
         return s[0]
-    if s.endswith("."):
-        s = s[:-1]
+    s = s.rstrip(". ")
     if s in texts:
         return labels[texts.index(s)]
     return None
@@ -161,8 +172,6 @@ def check_entailment(question: str, ref: str, ans: str, max_length: int = 512) -
         return None
 
     entail_id = _find_label_id(["entail"])
-    contra_id = _find_label_id(["contra", "contradict"])
-
     if question is not None:
         prem = f"{question} {ref}".strip()
         hypo = f"{question} {ans}".strip()
@@ -411,6 +420,20 @@ def compute_greedy_semantic(
     return entail, contra, entail_logits, contra_logits, entail_re, contra_re, entail_logits_re, contra_logits_re, id_map
 
 
+_NLP = None
+
+
+def _get_sentence_segmenter():
+    global _NLP
+    if _NLP is None:
+        try:
+            _NLP = spacy.load("en_core_web_sm")
+        except OSError:
+            _NLP = spacy.blank("en")
+            _NLP.add_pipe("sentencizer")
+    return _NLP
+
+
 def compute_sentence_greedy_semantic(
     question: str,               
     greedy_text: str,
@@ -421,7 +444,7 @@ def compute_sentence_greedy_semantic(
     batch_size_nli: int = 8,
     max_length: int = 512,
 ):
-    nlp = spacy.load("en_core_web_sm")
+    nlp = _get_sentence_segmenter()
     id2label = getattr(nli_model.config, "id2label", None)
     _id2label: Dict[int, str] = {}
     for k, v in id2label.items():
@@ -444,7 +467,7 @@ def compute_sentence_greedy_semantic(
 
     n = len(sample_texts)
     if n == 0:
-        z = np.zeros((0,), dtype=np.float32)
+        z = np.zeros((0, 0), dtype=np.float32)
         return z, z, z, z, {}
 
     if question is not None:
@@ -456,7 +479,7 @@ def compute_sentence_greedy_semantic(
 
     m = len(greedy_sentences)
     if m == 0:
-        z = np.zeros((0,), dtype=np.float32)
+        z = np.zeros((0, n), dtype=np.float32)
         return z, z, z, z, {}
 
     premises: List[str] = []
@@ -550,23 +573,20 @@ def compute_sample_cosine(
     return cosine_matrix
 
 def generate_steps(dataset, num):
-    cot_extractor_model_path = config.COT_EXTRACTOR_MODEL_PATH
-    
-    model = LLM(
-        model=cot_extractor_model_path,
-        tensor_parallel_size=1,
-        trust_remote_code=True,
-        dtype="float16",
-        max_model_len=32768,
-    )
+    api_base = os.getenv("COT_EXTRACTOR_VLLM_BASE_URL")
+    max_workers = int(os.getenv("COT_EXTRACTOR_VLLM_MAX_WORKERS") or 8)
 
-    generation_config = SamplingParams(
-        top_p=1.0,
-        temperature=0.0,
+    model = VLLMAdapter(
+        model_name=config.COT_EXTRACTOR_MODEL_PATH,
+        api_base=api_base,
+        api_key=os.getenv("COT_EXTRACTOR_VLLM_API_KEY") or "EMPTY",
+        max_workers=max_workers,
+        timeout=int(os.getenv("COT_EXTRACTOR_VLLM_TIMEOUT") or 600),
         max_tokens=2048,
+        max_retries=2,
     )
 
-    with open(f"{config.PROJECT_PATH}/system_prompt.txt") as f:
+    with open(Path(config.PROJECT_PATH) / "system_prompt.txt", encoding="utf-8") as f:
         sys_prompt = f.read()
 
     messages: List[List[Dict[str, str]]] = []
@@ -575,7 +595,10 @@ def generate_steps(dataset, num):
     for i, item in enumerate(dataset):
         question = item["question"]
 
-        greedy = item.get("greedy_results", {}) or {}
+        greedy = item.get("greedy_results")
+        if not isinstance(greedy, dict):
+            greedy = {}
+            item["greedy_results"] = greedy
         final_answer = greedy.get("answer")
         think = greedy.get("reasoning")
         if final_answer and think:
@@ -585,10 +608,15 @@ def generate_steps(dataset, num):
             ])
             refs.append((i, "greedy", None))
         else:
-            dataset[i]["greedy_results"]["cots"] = []
+            greedy["cots"] = []
 
-        for j in range(num):
-            sample = item.get("sample_results", [])[j]
+        samples = item.get("sample_results")
+        if not isinstance(samples, list):
+            samples = []
+            item["sample_results"] = samples
+        for j, sample in enumerate(samples[:max(0, int(num))]):
+            if not isinstance(sample, dict):
+                continue
             final_answer = sample.get("answer")
             think = sample.get("reasoning")
             if final_answer and think:
@@ -603,11 +631,20 @@ def generate_steps(dataset, num):
     if not messages:
         return dataset
 
-    outputs = model.chat(messages=messages, sampling_params=generation_config)
+    print(
+        f"[COT EXTRACTOR] base={api_base.rstrip('/')} "
+        f"| served_model={config.COT_EXTRACTOR_MODEL_PATH} | workers={max_workers} "
+        f"| targets={len(messages)} | max_tokens=2048"
+    )
+    outputs = model.generate_batch(
+        messages,
+        temperature=0.0,
+        top_p=1.0,
+    )
 
     for ref, out in zip(refs, outputs):
         i, kind, j = ref
-        response = (out.outputs[0].text or "").strip()
+        response = (out or "").strip()
         cots = [c.strip() for c in response.split("[STEP]") if c.strip()]
         if kind == "greedy":
             dataset[i]["greedy_results"]["cots"] = cots

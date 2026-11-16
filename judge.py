@@ -2,16 +2,18 @@ import argparse
 import json
 import os
 import time
-import re
 import string
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
+from src import config
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 api_base = os.getenv("OPENROUTER_API_BASE")
+
+LOCAL_ONLY_DATASETS = {"truthfulqa_mc", "gpqa_diamond"}
 
 def normalize_for_match(s: str) -> str:
     if s is None:
@@ -21,7 +23,7 @@ def normalize_for_match(s: str) -> str:
 
     exclude = set(string.punctuation + "".join([u"‘", u"’", u"´", u"`"]))
     s = "".join(ch if ch not in exclude else " " for ch in s)
-    return s
+    return " ".join(s.split())
 
 def match_string(resp_text: str, ground: List[str]) -> bool:
     r = normalize_for_match(resp_text)
@@ -74,9 +76,9 @@ def judge_one(
 def main():
     parser = argparse.ArgumentParser(
         description="Evaluate answers using threaded calls to /v1/responses with local string-match shortcut. "
-                    "TruthfulQA-MC uses local-only matching (no API)."
+                    "Multiple-choice datasets use local-only matching (no API)."
     )
-    parser.add_argument("--input_dir", type=str, default="output")
+    parser.add_argument("--input_dir", type=str, default=config.OUTPUT_DIR)
     parser.add_argument("--models", nargs="+", required=True, help="Model names to run")
     parser.add_argument("--datasets", nargs="+", required=True, help="Dataset names to run")
     parser.add_argument("--methods", nargs="+", required=True, help="Methods to run")
@@ -94,27 +96,19 @@ def main():
                 path = f"{args.input_dir}/{method_name}/{dataset_name}/{model_name}.json"
                 with open(path, "r", encoding="utf-8") as f:
                     records = json.load(f)
-                if dataset_name != "truthfulqa_mc":
-                    client = OpenAI(
-                        api_key=api_key,
-                        base_url=api_base,
-                        timeout=args.timeout,
-                    )
+                tasks: List[Tuple[int, str]] = []
 
-                tasks: List[Tuple[str, str, str]] = []
-                api_results: Dict[str, float] = {}
-
-                for rec in tqdm(records):
+                for record_index, rec in enumerate(tqdm(records)):
+                    rec["label"] = None
                     pred_answer = rec.get("pred_answer", None)
                     if pred_answer is None or pred_answer == "":
                         continue
 
-                    sid = rec.get("id", "")
                     ground_truth = rec.get("ground_truth", [])
                     if isinstance(ground_truth, str):
                         ground_truth = [ground_truth]
 
-                    if dataset_name == "truthfulqa_mc":
+                    if dataset_name in LOCAL_ONLY_DATASETS:
                         rec["label"] = 1.0 if match_string(pred_answer, ground_truth) else 0.0
                         continue
 
@@ -123,12 +117,17 @@ def main():
                         continue
 
                     prompt = build_judge_prompt(rec, ground_truth, pred_answer)
-                    tasks.append((sid, pred_answer, prompt))
+                    tasks.append((record_index, prompt))
 
                 if tasks:
+                    client = OpenAI(
+                        api_key=api_key,
+                        base_url=api_base,
+                        timeout=args.timeout,
+                    )
                     with ThreadPoolExecutor(max_workers=args.max_workers) as ex:
                         fut2key = {}
-                        for sid, pred_answer, prompt in tasks:
+                        for record_index, prompt in tasks:
                             fut = ex.submit(
                                 judge_one,
                                 client,
@@ -138,10 +137,10 @@ def main():
                                 args.max_retries,
                                 args.base_backoff,
                             )
-                            fut2key[fut] = sid
+                            fut2key[fut] = record_index
 
                         for fut in tqdm(as_completed(fut2key), total=len(fut2key)):
-                            sid = fut2key[fut]
+                            record_index = fut2key[fut]
                             try:
                                 txt = fut.result()
                             except Exception:
@@ -152,11 +151,7 @@ def main():
 
                             reply = txt.strip().lower()
                             score = 1.0 if reply.startswith("yes") else 0.0
-                            api_results[sid] = score
-                
-                for rec in tqdm(records):
-                    sid = rec.get("id", "")
-                    rec["label"] = api_results.get(sid, rec.get("label", None))
+                            records[record_index]["label"] = score
                 
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(records, f, ensure_ascii=False, indent=4)

@@ -1,4 +1,3 @@
-from typing import Any, Dict, List, Optional, Tuple
 import os
 import json
 from src.utils import compute_sample_semantic, norm_mc, load_nli_model
@@ -141,7 +140,7 @@ Output ONLY a single JSON object with fields in this exact order:
                 if "answer" not in s.keys():
                     text = s.get("text", "")
                     ans, conf = self.parse_answer_confidence(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         s["answer"] = norm_mc(ans, item)
                     else:
                         s["answer"] = ans
@@ -176,7 +175,7 @@ Output ONLY a single JSON object with fields in this exact order:
             valid_answers = [answers[i].strip() for i in valid_idxs]
             valid_confs = [float(confidences[i]) for i in valid_idxs]
 
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 dedup_answers = []
                 ans2did = {}
                 orig2dedup = []

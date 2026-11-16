@@ -1,11 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import os
-import re
 from src.utils import compute_sample_semantic, build_sample_path, sample_generate, extract_final_answer, norm_mc, load_nli_model
 import numpy as np
-import copy
 import json
-import torch
 from tqdm import tqdm
 from src import config
 
@@ -127,14 +124,14 @@ Output ONLY a single JSON object with fields in this exact order:
                     if "answer" not in s.keys():
                         text = s.get("text", "")
                         s["answer"] = extract_final_answer(text)
-                        if self.dataset_name == "truthfulqa_mc":
+                        if item.get("options"):
                             s["answer"] = norm_mc(s["answer"], item)
 
                 greedy = item.get("greedy_results", None)
                 if "answer" not in greedy.keys():
                     text = greedy.get("text", "")
                     greedy["answer"] = extract_final_answer(text)
-                    if self.dataset_name == "truthfulqa_mc":
+                    if item.get("options"):
                         greedy["answer"] = norm_mc(greedy["answer"], item)
 
             with open(cache_path, "w", encoding="utf-8") as f:
@@ -149,8 +146,9 @@ Output ONLY a single JSON object with fields in this exact order:
             dataset = json.load(f)
 
         valid_num = self.sample_num // 2
+        is_multiple_choice = bool(dataset and dataset[0].get("options"))
 
-        if self.dataset_name == "truthfulqa_mc":
+        if is_multiple_choice:
             id_map = {
                 "entail_id": 0,
                 "neutral_id": 1,
@@ -193,7 +191,7 @@ Output ONLY a single JSON object with fields in this exact order:
                     if ans:
                         sample_texts.append(ans)
 
-                if self.dataset_name == "truthfulqa_mc":
+                if is_multiple_choice:
                     n = len(sample_texts)
                     class_mat = [[0 for _ in range(n)] for _ in range(n)]
 
@@ -250,16 +248,21 @@ Output ONLY a single JSON object with fields in this exact order:
             float(x) for x in se_scores_dev
             if x is not None and not np.isnan(x)
         ]
-        u_min = float(np.min(valid_scores_dev))
-        u_max = float(np.max(valid_scores_dev))
+        if valid_scores_dev:
+            u_min = float(np.min(valid_scores_dev))
+            u_max = float(np.max(valid_scores_dev))
+        else:
+            u_min, u_max = 0.0, 1.0
         denom = (u_max - u_min)
 
         def minmax(x: float) -> float:
             if denom <= 1e-12:
                 return 0.0
             v = (x - u_min) / denom
-            if v < 0.0: v = 0.0
-            if v > 1.0: v = 1.0
+            if v < 0.0:
+                v = 0.0
+            if v > 1.0:
+                v = 1.0
             return float(v)
 
         for item, se_score in zip(dataset, se_scores_test):

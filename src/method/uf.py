@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
 import os
-import re
 import json
 from tqdm import tqdm
 import numpy as np
@@ -104,11 +103,11 @@ Output ONLY a single JSON object with fields in this exact order:
                 out.append({"label": lab, "text": txt})
             return out
 
-        excluded = set()
-        chain = []
-
         if target_label not in labels_all:
-            return chain
+            return [], []
+
+        excluded = set()
+        chain = [target_label]
 
         outs = []
         for _step in range(self.max_chain_steps):
@@ -127,15 +126,14 @@ Output ONLY a single JSON object with fields in this exact order:
             out = self.model.generate_one(messages, temperature=0.1)
             outs.append(out)
             pick = extract_final_answer(out)
-            pick = norm_mc(pick, item)
-            if pick in labels_all:
-                chain.append(pick)
-            else:
+            pick = norm_mc(pick, {"options": opts})
+            if pick is None or pick not in valid_labels:
                 break
 
             if pick == target_label:
                 break
 
+            chain.append(pick)
             excluded.add(pick)
             if len(excluded) >= (len(labels_all) - 1):
                 continue
@@ -231,9 +229,6 @@ Output ONLY a single JSON object with fields in this exact order:
             
         for item, sample_item in zip(self.dataset, sample_dataset):
             item["sample_results"] = sample_item["sample_results"][: self.sample_num]
-
-        if "qwen3-4b" in self.model_name:
-            self.max_workers = 1
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
             futures = [

@@ -1,11 +1,13 @@
 import argparse
 import json
+import math
 import os
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
+from src import config
 
 
 def _valid(x: Any) -> bool:
@@ -39,9 +41,10 @@ def _to_float(x: Any):
             return None
 
     try:
-        return float(x)
+        value = float(x)
     except Exception:
         return None
+    return value if math.isfinite(value) else None
 
 
 def load_valid_ids(filter_path: str, keys):
@@ -90,7 +93,7 @@ def main():
         description="Batch-compute AUROC / ECE / Brier for JSON result files."
     )
 
-    parser.add_argument("--input_dir", default="output")
+    parser.add_argument("--input_dir", default=config.OUTPUT_DIR)
     parser.add_argument("--models", nargs="+", required=True, help="Model names to evaluate")
     parser.add_argument("--datasets", nargs="+", required=True, help="Dataset names to evaluate")
     parser.add_argument("--methods", nargs="+", required=True, help="Methods to evaluate")
@@ -115,8 +118,6 @@ def main():
         f"{'ACC':>8} {'AUROC':>8} {f'ECE({args.bins})':>10} {'BRIER':>8}"
     )
     print("-" * 120)
-
-    all_has_result = False
 
     for method in args.methods:
         summary_rows = []
@@ -169,6 +170,8 @@ def main():
 
                     if yt is None or yp is None:
                         continue
+                    if yt not in (0.0, 1.0) or not 0.0 <= yp <= 1.0:
+                        continue
 
                     y_true_list.append(yt)
                     y_prob_list.append(yp)
@@ -210,8 +213,6 @@ def main():
             print(f"[skip] no usable results for method: {method}")
             continue
 
-        all_has_result = True
-
         df = pd.DataFrame(summary_rows)
 
         df["dataset"] = pd.Categorical(
@@ -233,12 +234,6 @@ def main():
 
         df.to_csv(out_csv, index=False, encoding="utf-8-sig")
         print(f"[saved] {out_csv}")
-
-    if not all_has_result:
-        raise RuntimeError(
-            "No usable JSON results found. Please check --input_dir, --methods, --datasets, and --models."
-        )
-
 
 if __name__ == "__main__":
     main()

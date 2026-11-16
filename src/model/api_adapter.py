@@ -55,7 +55,16 @@ class MultiFormatAdapter:
 
         for attempt in range(self.max_retries + 1):
             try:
-                if "gpt-5-mini" in self.openrouter_model_name:
+                if "glm-5.3-flash" in self.openrouter_model_name:
+                    resp = self.client.chat.completions.create(
+                        model=self.openrouter_model_name,
+                        messages=messages,
+                        temperature=temperature,
+                        reasoning_effort="high",
+                        max_tokens=self.max_tokens,
+                        **kwargs,
+                    )
+                elif "gpt-5-mini" in self.openrouter_model_name:
                     resp = self.client.chat.completions.create(
                         model=self.openrouter_model_name,
                         messages=messages,
@@ -108,6 +117,8 @@ class MultiFormatAdapter:
         temperature: float,
         **kwargs: Any,
     ):
+        if not messages_list:
+            return []
         results = [None] * len(messages_list)
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as ex:

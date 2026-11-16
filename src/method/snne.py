@@ -1,9 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Tuple
 import os
-import re
 import json
-import copy
 import numpy as np
 from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
@@ -91,7 +89,7 @@ Output ONLY a single JSON object with fields in this exact order:
             if isinstance(ground_truth, str):
                 ground_truth = [ground_truth]
 
-            if self.dataset_name == "truthfulqa_mc":
+            if rec.get("options"):
                 rec["label"] = 1.0 if match_string(pred_answer, ground_truth) else 0.0
                 continue
 
@@ -299,7 +297,6 @@ Output ONLY a single JSON object with fields in this exact order:
                 continue
 
             E = np.asarray(E_list, dtype=np.float32)
-            C = np.asarray(C_list, dtype=np.float32)
             class_mat = np.asarray(class_list, dtype=np.float32)
 
             if E.ndim != 2 or E.shape[0] <= min(1, self.sample_num // 2) or E.shape[0] != E.shape[1]:

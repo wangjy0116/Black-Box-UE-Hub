@@ -1,12 +1,9 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import os
 import re
 from src.utils import compute_greedy_semantic, sample_generate, build_sample_path, extract_final_answer, load_nli_model
 import numpy as np
-import scipy.linalg
-import copy
 import json
-import torch
 from tqdm import tqdm
 from src import config
 
@@ -80,9 +77,9 @@ Output ONLY a single JSON object with fields in this exact order:
     def bsdetector_score(self, sample, contra, contra_re, greedy_results):
         score = {"a": 1.0, "b": 0.0, "c": 0.5}
         cnt = 0
-        for i in range(self.sample_num):
-            if sample[i]["answer"] is not None:
-                cnt+=1
+        for result in sample[: self.sample_num]:
+            if result.get("answer") is not None:
+                cnt += 1
         
         if greedy_results["reflect1_answer"] and  greedy_results["reflect2_answer"]:
             reflect_score = (score[greedy_results["reflect1_answer"]] + score[greedy_results["reflect2_answer"]])/2
@@ -90,7 +87,8 @@ Output ONLY a single JSON object with fields in this exact order:
             reflect_score = score[greedy_results["reflect1_answer"]] 
         elif greedy_results["reflect2_answer"]:
             reflect_score = score[greedy_results["reflect2_answer"]]
-        else: reflect_score = None
+        else:
+            reflect_score = None
         if cnt == 0: 
             return None
         

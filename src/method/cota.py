@@ -1,10 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple
-import re
+from typing import Any, Dict, Optional
 import json
 from tqdm import tqdm
-import numpy as np
 import ast
-from src.utils import compute_sample_semantic, build_sample_path, sample_generate, extract_final_answer, load_nli_model, generate_steps
+from src.utils import compute_sample_semantic, build_sample_path, sample_generate, extract_final_answer, load_nli_model, generate_steps, norm_mc
 from src import config
 import os
 
@@ -147,7 +145,10 @@ Output ONLY a single JSON object with fields in this exact order:
             for sample in item.get("sample_results", []):
                 if "answer" not in sample.keys():
                     text = sample.get("text", "")
-                    sample["answer"] = extract_final_answer(text)
+                    answer = extract_final_answer(text)
+                    sample["answer"] = (
+                        norm_mc(answer, item) if item.get("options") else answer
+                    )
                 if "reasoning" not in sample.keys():
                     text = sample.get("text", "")
                     cot = self.parse_cot(text)
@@ -155,7 +156,10 @@ Output ONLY a single JSON object with fields in this exact order:
 
             if "answer" not in item["greedy_results"].keys():
                 text = item["greedy_results"].get("text", "")
-                item["greedy_results"]["answer"] = extract_final_answer(text)
+                answer = extract_final_answer(text)
+                item["greedy_results"]["answer"] = (
+                    norm_mc(answer, item) if item.get("options") else answer
+                )
             if "reasoning" not in item["greedy_results"].keys():
                 text = item["greedy_results"].get("text", "")
                 cot = self.parse_cot(text)
@@ -169,7 +173,14 @@ Output ONLY a single JSON object with fields in this exact order:
         with open(sample_test_path, "r", encoding="utf-8") as f:
             dataset = json.load(f)
 
-        if "cots" not in dataset[0]["sample_results"][0]:
+        needs_steps = any(
+            "cots" not in sample
+            for item in dataset
+            for sample in item.get("sample_results", [])[: self.sample_num]
+        ) or any(
+            "cots" not in item.get("greedy_results", {}) for item in dataset
+        )
+        if needs_steps:
             dataset = generate_steps(dataset, self.sample_num)
 
         with open(sample_test_path, "w", encoding="utf-8") as f:
@@ -179,17 +190,25 @@ Output ONLY a single JSON object with fields in this exact order:
         valid_num = self.sample_num // 2
         tokenizer, nli_model = load_nli_model(config.NLI_MODEL_PATH)
         for item in tqdm(dataset):
-            greedy_cots = item["greedy_results"]["cots"]
+            greedy_cots = item.get("greedy_results", {}).get("cots", [])
             if greedy_cots is None or greedy_cots == []:
                 cota_scores.append(None)
                 continue
             sum_score = 0.0
             cnt = 0
-            for i in range(self.sample_num):
-                sample_cots = item["sample_results"][i]["cots"]
+            for sample in item.get("sample_results", [])[: self.sample_num]:
+                sample_cots = sample.get("cots", [])
                 if sample_cots is not None and sample_cots != []:
-                    sum_score += self.compute_cota(item["question"], greedy_cots, sample_cots, tokenizer, nli_model)
-                    cnt+=1
+                    score = self.compute_cota(
+                        item["question"],
+                        greedy_cots,
+                        sample_cots,
+                        tokenizer,
+                        nli_model,
+                    )
+                    if score is not None:
+                        sum_score += score
+                        cnt += 1
             if cnt <= valid_num:
                 cota_scores.append(None)
             else:
@@ -208,7 +227,7 @@ Output ONLY a single JSON object with fields in this exact order:
                     "pred_answer": item["greedy_results"]["answer"],
                     "pred_score": None})
 
-            if self.dataset_name == "truthfulqa_mc":
+            if item.get("options"):
                 output[-1]["options"] = item["options"]
             if self.dataset_name == "coqa":
                 output[-1]["story"] = item["story"]

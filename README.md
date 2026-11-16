@@ -3,7 +3,7 @@
 <!-- <div align="center">
   <img src="https://img.shields.io/badge/Repo-Black--Box--UE--Hub-2f80ed?style=for-the-badge" alt="Black-Box-UE-Hub">
   <img src="https://img.shields.io/badge/Scope-Black--Box%20UE-7b61ff?style=for-the-badge" alt="Scope">
-  <img src="https://img.shields.io/badge/Methods-35-brightgreen?style=for-the-badge" alt="Methods">
+  <img src="https://img.shields.io/badge/Methods-37-brightgreen?style=for-the-badge" alt="Methods">
   <img src="https://img.shields.io/badge/Status-Updating-orange?style=for-the-badge" alt="Status">
 </div>
 
@@ -151,13 +151,14 @@ Sampling-based methods estimate uncertainty by generating multiple responses for
 | [Long-text Uncertainty Quantification (LUQ)](https://arxiv.org/abs/2403.20279) | EMNLP 2024 | Medium | ✅ | ✅ | — | [Code](https://github.com/caiqizh/LUQ) |
 | [Jiang et al. (GU)](https://arxiv.org/abs/2410.20783) | NeurIPS 2024 | Medium | ✅ | ✅ | — | [Code](https://github.com/Mingjianjiang-1/Graph-based-Uncertainty) |
 | [Semantic Embedding Uncertainty (SEU)](https://arxiv.org/abs/2410.22685) | arXiv 2024 | Medium | — | ✅ | — | — |
-| [Multi-Dimensional Uncertainty Quantification (MDUQ)](https://arxiv.org/abs/2502.16820) | arXiv 2025 | Medium | — | ✅ | — | — |
 | [Convex Hull](https://arxiv.org/abs/2406.19712) | DAI 2024 | High | — | ✅ | — | — |
-| [Semantic INconsistency Index (SINdex)](https://arxiv.org/abs/2503.05980) | arXiv 2025 | Medium | — | ✅ | — | — |
 | [Semantic Nearest Neighbor Entropy (SNNE)](https://arxiv.org/abs/2506.00245) | ACL Findings 2025 | Medium | — | ✅ | — | [Code](https://github.com/BigML-CS-UCLA/SNNE) |
-| [Semantic Structural Entropy (SeSE)](https://arxiv.org/pdf/2511.16275) | arXiv 2025 | Medium | — | ✅ | — | [Code](https://github.com/SELGroup/SeSE) |
+| [Multi-Resource Uncertainty Quantification (MS-UQ)](https://aclanthology.org/2026.findings-acl.535/) | ACL Findings 2026 | Medium | — | ✅ | — | [Code](https://github.com/tiejin98/MSUQ) |
+| [Semantic INconsistency Index (SINdex)](https://doi.org/10.1109/OJCS.2026.3697236) | IEEE OJ-CS 2026 | Medium | — | ✅ | — | — |
+| [Semantic Structural Entropy (SeSE)](https://openreview.net/forum?id=THZuVvy7SV) | UAI 2026 | Medium | — | ✅ | — | [Code](https://github.com/SELGroup/SeSE) |
 | [Sampling with Perturbation for Uncertainty Quantification (SPUQ)](https://arxiv.org/abs/2402.06164) | EACL 2024 | Medium | ✅ | ✅ | — | [Code](https://github.com/intuit-ai-research/SPUQ/tree/main) |
 | [Inverse-Entropy (InvE)](https://arxiv.org/abs/2502.00628) | NeurIPS 2025 | Medium | — | ✅ | — | [Code](https://github.com/UMDataScienceLab/Uncertainty-Quantification-for-LLMs) |
+| [Bipartite Graph for Semantic Uncertainty and Reliability Estimation (SURE)](https://aclanthology.org/2026.emnlp-main.1075/) | EMNLP 2026 | High | ✅ | ✅ | — | [Code](https://github.com/iiscleap/BiG-SURE) |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -171,10 +172,11 @@ Explanation-based methods estimate uncertainty from the model's reasoning proces
 | [CoT Explanations (COTA)](https://arxiv.org/abs/2308.16175) | AISTATS 2024 | Medium | ✅ | ✅ | ✅ | — |
 | [Think twice before trusting (T3)](https://arxiv.org/abs/2403.09972) | EMNLP Findings 2024 | Medium | ✅ | — | ✅ | — |
 | [Topo-UQ](https://arxiv.org/abs/2502.17026) | COLM 2025 | Medium | — | ✅ | ✅ | [Code](https://github.com/LongchaoDa/LLM-Topology) |
-| [Introspective UQ (IUQ)](https://arxiv.org/abs/2506.18183) | arXiv 2025 | Low / Medium | ✅ | ✅ | ✅ | — |
 | [CenConf](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
 | [PathConv](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
 | [PathWeight](https://arxiv.org/abs/2509.12908) | EMNLP 2025 | Medium | ✅ | ✅ | ✅ | — |
+| [Introspective UQ (IUQ)](https://aclanthology.org/2026.findings-eacl.178/) | EACL Findings 2026 | Low / Medium | ✅ | ✅ | ✅ | — |
+| [Argument Graph Uncertainty (AGU)](https://arxiv.org/abs/2610.20328) | NeurIPS 2026 | Medium | ✅ | — | ✅ | — |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -252,11 +254,20 @@ class ExampleMethod:
 
 ### 1. Configure Paths and Models
 
-Update project paths, model names, API settings, and output directories in:
+Set the project and model paths in `src/config.py`.
 
-```text
-src/config.py
+API endpoints are read only from environment variables; the source code does
+not provide fallback URLs. Set the variables required by the backend you use:
+
+```bash
+export OPENROUTER_API_BASE=<openrouter-api-base>
+export OPENROUTER_API_KEY=<openrouter-api-key>
+export VLLM_API_BASE=<vllm-api-base>
+export COT_EXTRACTOR_VLLM_BASE_URL=<cot-extractor-api-base>
 ```
+
+For GPQA Diamond, accept the gated dataset terms on Hugging Face and run
+`hf auth login` or set `HF_TOKEN` before the first download.
 
 Adjust method-specific arguments in:
 

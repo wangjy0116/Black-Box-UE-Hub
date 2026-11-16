@@ -2,23 +2,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import json
 import ast
 from tqdm import tqdm
-import numpy as np
 from src import config
 import os
 
 class T3:
 
     def __init__(self, model_name, model, dataset_name, dev_dataset, test_dataset, temperature = 0.1):
-        self.system_prompt = """Read the following question and explanations for each option, and reason step-by-step to formulate 2 best guesses and probability that each is correct. {description}
-
-Output ONLY a single JSON object with fields in this exact order:
-{{
-  "reasoning": "Your step-by-step analysis",
-  "answers": [
-    {{"candidate": "first most likely guess", "probability": 0.0-1.0}},
-    {{"candidate": "second most likely guess", "probability": 0.0-1.0}}
-  ]
-}}"""
         self.model_name = model_name
         self.model = model
         self.dataset_name = dataset_name
@@ -29,7 +18,41 @@ Output ONLY a single JSON object with fields in this exact order:
         self.show = True
 
     def build_system_prompt(self, item):
-        return self.system_prompt.format(description=item["description"]) 
+        options_num = int(item.get("options_num") or len(item.get("options", [])))
+        answer_rows = []
+        rank_names = {
+            1: "first",
+            2: "second",
+            3: "third",
+            4: "fourth",
+            5: "fifth",
+        }
+        shown_indices = list(range(1, options_num + 1))
+        if options_num > 2:
+            shown_indices = [1, options_num]
+        for index in shown_indices:
+            rank = rank_names.get(index, f"number {index}")
+            answer_rows.append(
+                f'    {{"candidate": "{rank} most likely guess", '
+                '"probability": 0.0-1.0}'
+            )
+        answers_json = (
+            f"{answer_rows[0]},\n    ...\n{answer_rows[-1]}"
+            if options_num > 2
+            else ",\n".join(answer_rows)
+        )
+        return (
+            "Read the following question and explanations for each option, and "
+            f"reason step-by-step to formulate {options_num} best guesses and "
+            f"probability that each is correct. {item['description']}\n\n"
+            "Output ONLY a single JSON object with fields in this exact order:\n"
+            "{\n"
+            '  "reasoning": "Your step-by-step analysis",\n'
+            '  "answers": [\n'
+            f"{answers_json}\n"
+            "  ]\n"
+            "}"
+        )
 
     def build_user_prompt_explanation(self, item, idx):
         return f"Question: {item['question']}\nThe answer is {chr(ord('A') + idx)}\nPlease generate an brief explanation to try to justify the answer judgment."

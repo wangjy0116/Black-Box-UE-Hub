@@ -1,8 +1,7 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import os
 import re
 import numpy as np
-import copy
 import json
 from tqdm import tqdm
 from src import config
@@ -346,14 +345,13 @@ Output ONLY a single JSON object with fields in this exact order:
             item["beam_semantic_entail"] = E.tolist()
             item["beam_semantic_contra"] = C.tolist()
 
-        output = []
         dinco_scores = []
         for item1, item2 in zip(dataset1, dataset2):
             beam_score = self.beam_score(item2)
             sample_score = self.sample_score(item1, item2)
-            if beam_score == None and sample_score is not None:
+            if beam_score is None and sample_score is not None:
                 dinco_scores.append(sample_score)
-            elif beam_score is not None and sample_score == None:
+            elif beam_score is not None and sample_score is None:
                 dinco_scores.append(beam_score)
             elif beam_score is not None and sample_score is not None:
                 dinco_scores.append((beam_score+sample_score)/2)
