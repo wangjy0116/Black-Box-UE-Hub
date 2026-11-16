@@ -16,15 +16,6 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2606.19868">
-    <img src="https://img.shields.io/badge/arXiv-2606.19868-b31b1b.svg" alt="arXiv">
-  </a>
-  <a href="https://arxiv.org/pdf/2606.19868">
-    <img src="https://img.shields.io/badge/Paper-PDF-blue.svg" alt="Paper PDF">
-  </a>
-</p>
-
-<p align="center">
   <img src="fig/overview.png" alt="Overview of black-box UE for LLMs" width="99%">
 </p>
 
@@ -396,16 +387,3 @@ Contributions are welcome. Please open an Issue or Pull Request if you find:
 
 
 
-<!-- ## 📜 Citation
-
-If you find this repository useful, please cite the corresponding survey or this repository. The BibTeX entry can be updated once the final survey metadata is available.
-
-```bibtex
-@misc{blackboxuehub2026,
-  title        = {Black-Box-UE-Hub: A Hub for Black-Box Uncertainty Estimation in Large Language Models},
-  howpublished = {\url{https://github.com/<YOUR_GITHUB_ID>/Black-Box-UE-Hub}},
-  year         = {2026}
-}
-```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p> -->
