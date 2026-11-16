@@ -254,20 +254,11 @@ class ExampleMethod:
 
 ### 1. Configure Paths and Models
 
-Set the project and model paths in `src/config.py`.
+Update project paths, model names, API settings, and output directories in:
 
-API endpoints are read only from environment variables; the source code does
-not provide fallback URLs. Set the variables required by the backend you use:
-
-```bash
-export OPENROUTER_API_BASE=<openrouter-api-base>
-export OPENROUTER_API_KEY=<openrouter-api-key>
-export VLLM_API_BASE=<vllm-api-base>
-export COT_EXTRACTOR_VLLM_BASE_URL=<cot-extractor-api-base>
+```text
+src/config.py
 ```
-
-For GPQA Diamond, accept the gated dataset terms on Hugging Face and run
-`hf auth login` or set `HF_TOKEN` before the first download.
 
 Adjust method-specific arguments in:
 
